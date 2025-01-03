@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detector</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 100px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-weight: bold;
+        }
+
+        .supported {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .contradicted {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .inconclusive {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .source-item {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+
+        .confidence-score {
+            font-size: 1.2em;
+            text-align: center;
+            margin: 10px 0;
+        }
+
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            padding: 10px;
+            border-radius: 4px;
+            margin-top: 10px;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fake News Detector</h1>
+        
+        <div class="form-group">
+            <label for="newsText">News Text:</label>
+            <textarea id="newsText" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="image">Image:</label>
+            <input type="file" id="image" accept="image/*" required>
+        </div>
+
+        <button onclick="analyzeNews()">Analyze</button>
+
+        <div id="loading">
+            Analyzing... Please wait...
+        </div>
+
+        <div id="error" class="error"></div>
+
+        <div id="result">
+            <div id="statusBanner" class="status"></div>
+            <div class="confidence-score">
+                Confidence Score: <span id="confidenceScore"></span>
+            </div>
+            <h3>Analysis:</h3>
+            <p id="reasoning"></p>
+            <h3>Image-Text Match:</h3>
+            <p id="imageTextMatch"></p>
+            <h3>Fact-Check Sources:</h3>
+            <div id="sources"></div>
+        </div>
+    </div>
+
+    <script>
+        async function analyzeNews() {
+            const newsText = document.getElementById('newsText').value;
+            const imageFile = document.getElementById('image').files[0];
+            
+            if (!newsText || !imageFile) {
+                showError('Please provide both news text and an image.');
+                return;
+            }
+
+            // Show loading, hide results and error
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('result').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+
+            const formData = new FormData();
+            formData.append('news', JSON.stringify({ news_text: newsText }));
+            formData.append('image', imageFile);
+
+            try {
+                const response = await fetch('http://localhost:8000/analyze', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displayResults(data);
+            } catch (error) {
+                showError('Error analyzing news: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            document.getElementById('result').style.display = 'block';
+
+            // Set status banner
+            const statusBanner = document.getElementById('statusBanner');
+            statusBanner.textContent = `Status: ${data.fact_check_status}`;
+            statusBanner.className = `status ${data.fact_check_status.toLowerCase()}`;
+
+            // Set confidence score
+            document.getElementById('confidenceScore').textContent = 
+                `${(data.confidence_score * 100).toFixed(1)}%`;
+
+            // Set reasoning
+            document.getElementById('reasoning').textContent = data.reasoning;
+
+            // Set image-text match
+            document.getElementById('imageTextMatch').textContent = 
+                data.image_text_match ? "Image matches the text" : "Image does not match the text";
+
+            // Display sources
+            const sourcesContainer = document.getElementById('sources');
+            sourcesContainer.innerHTML = data.fact_check_sources.map(source => `
+                <div class="source-item">
+                    <strong>Source:</strong> <a href="${source.source}" target="_blank">${source.source}</a><br>
+                    <strong>Relevance:</strong> ${(source.relevance * 100).toFixed(1)}%<br>
+                    <strong>Snippet:</strong> ${source.snippet}
+                </div>
+            `).join('');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+            document.getElementById('loading').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

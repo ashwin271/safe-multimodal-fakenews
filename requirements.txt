@@ -1,3 +1,10 @@
 together
 python-dotenv
 tavily-python
+fastapi
+uvicorn
+python-multipart
+langchain
+langchain-community
+pydantic
+aiofiles
