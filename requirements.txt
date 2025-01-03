@@ -1,10 +1,7 @@
-together
-python-dotenv
-tavily-python
 fastapi
 uvicorn
-python-multipart
-langchain
-langchain-community
+python-dotenv
+tavily-python
+together
 pydantic
-aiofiles
+python-multipart

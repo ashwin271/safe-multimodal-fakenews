@@ -1,120 +1,139 @@
-from together import Together
-from dotenv import load_dotenv
-from tavily import TavilyClient
+# src/main.py
+
+import logging
+from fastapi import FastAPI, HTTPException, File, UploadFile, Form
+from typing import List
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.middleware.cors import CORSMiddleware
 import os
 import base64
+from dotenv import load_dotenv
+from models import FactCheckResult, FakeNewsAnalysis  # Import from models.py
+from utils import (
+    initialize_tavily_client,
+    initialize_together_client,
+    fact_check_with_tavily,
+    analyze_with_together,
+    validate_image_file
+)
 
-# Load environment variables from .env file
+# Load environment variables
 load_dotenv()
 
-# Initialize the Together API client
-client = Together(api_key=os.getenv('TOGETHER_API_KEY'))
-
-# Initialize Tavily client
-tavily_client = TavilyClient(api_key=os.getenv('TAVILY_API_KEY'))
-
-def fact_check_with_tavily(news_text):
-    """
-    Search the internet for related facts about the news claim.
-    """
-    try:
-        # Search with Tavily's news-focused search
-        search_result = tavily_client.search(
-            query=news_text,
-            search_depth="advanced",
-            include_domains=["reuters.com", "apnews.com", "bbc.com", "factcheck.org", "snopes.com"],
-            max_results=5
-        )
-        
-        return search_result
-    except Exception as e:
-        print(f"Tavily search error: {e}")
-        return None
-
-def detect_fake_news(news_text, image_path):
-    """
-    Enhanced fake news detection with Tavily fact-checking.
-
-    Args:
-        news_text (str): The text of the news article.
-        image_path (str): Path to the image associated with the news.
-
-    Returns:
-        str: Model's response indicating if the news is fake or true.
-    """
-    # First, get fact-checking results
-    fact_check_results = fact_check_with_tavily(news_text)
-
-    # Validate image path
-    if not os.path.exists(image_path):
-        raise FileNotFoundError(f"Image file not found: {image_path}")
-
-    # Load the image file
-    with open(image_path, "rb") as img_file:
-        image_bytes = img_file.read()
-        image_base64 = base64.b64encode(image_bytes).decode('utf-8')
-        image_base64 = f"data:image/jpeg;base64,{image_base64}"
-
-    # Prepare the input for the model
-    messages = [
-        {
-            "role": "system",
-            "content": """You are a fake news detection expert. Analyze the provided news text, image, and fact-checking results. Respond in the following format:
-
-IMAGE-TEXT MATCH: [Yes/No]
-FACT CHECK: [Supported/Contradicted/Inconclusive]
-FAKE NEWS: [Yes/No]
-REASONING: [Your detailed explanation including references to fact-checking results]
-
-Be direct and concise in your assessment."""
-        },
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": f"""News Text: {news_text}
-                
-Fact-Checking Results:
-{fact_check_results}
-
-Please analyze if this news is authentic by checking:
-1. If the image supports the text
-2. If the fact-checking results support or contradict the claim"""},
-                {
-                    "type": "image_url",
-                    "image_url": {
-                        "url": image_base64
-                    }
-                }
-            ]
-        }
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s",
+    handlers=[
+        logging.FileHandler("fake_news_detector.log"),
+        logging.StreamHandler()
     ]
+)
+logger = logging.getLogger(__name__)
 
-    # Call the Together API
-    response = client.chat.completions.create(
-        model="meta-llama/Llama-Vision-Free",
-        messages=messages,
-        max_tokens=512,
-        temperature=0.7,
-        top_p=0.7,
-        top_k=50,
-        repetition_penalty=1.0,
-        stop=["<|eot_id|>", "<|eom_id|>"],
-        stream=False
-    )
+# Initialize FastAPI
+app = FastAPI(title="SAFE - Fake News Detection API")
 
-    return response.choices[0].message.content
+# Enable CORS (Adjust origins as needed for production)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Replace with specific domains in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
+# Mount static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# Initialize API clients
+tavily_client = initialize_tavily_client()
+together_client = initialize_together_client()
+
+@app.get("/")
+async def root():
+    """Serve the index.html for the homepage."""
+    logger.info("Serving homepage.")
+    return FileResponse("static/index.html")
+
+@app.post("/analyze", response_model=FakeNewsAnalysis)
+async def analyze_news(
+    news: str = Form(...),
+    image: UploadFile = File(...)
+):
+    """
+    Analyze the provided news text and image for fake news.
+    """
+    logger.info("Received analysis request.")
+
+    try:
+        # Parse and validate news text
+        news_data = {"news_text": news}
+        news_text = news_data["news_text"]
+        logger.info(f"News text received: {news_text[:100]}...")
+
+        # Validate and process image
+        image_contents = await validate_image_file(image)
+        image_base64 = base64.b64encode(image_contents).decode("utf-8")
+        image_data_uri = f"data:{image.content_type};base64,{image_base64}"
+        logger.info(f"Image {image.filename} processed and encoded.")
+
+        # Perform fact-checking with Tavily
+        fact_check_results = fact_check_with_tavily(tavily_client, news_text)
+        logger.info(f"Fact-checking completed with {len(fact_check_results)} results.")
+
+        # Analyze image and text with Together AI
+        together_response = analyze_with_together(
+            together_client,
+            news_text,
+            image_data_uri
+        )
+        logger.info("Image-text analysis with Together AI completed.")
+
+        # Combine results
+        image_text_match = together_response.get("image_text_match", False)
+        fact_check_status = together_response.get("fact_check_status", "Inconclusive")
+        is_fake_news = together_response.get("is_fake_news", True)
+        reasoning = together_response.get("reasoning", "Insufficient data to determine authenticity.")
+        confidence_score = together_response.get("confidence_score", 0.0)
+
+        # Override is_fake_news based on fact-check status if necessary
+        if fact_check_status == "Contradicted":
+            is_fake_news = True
+        elif fact_check_status == "Supported":
+            is_fake_news = False
+        # If "Inconclusive", retain the value from Together's analysis
+
+        # **HERE IS THE FIX: Convert FactCheckResult instances to dictionaries**
+        fact_check_sources_dict = [result.dict() for result in fact_check_results]
+
+        analysis_result = FakeNewsAnalysis(
+            image_text_match=image_text_match,
+            fact_check_status=fact_check_status,
+            is_fake_news=is_fake_news,
+            reasoning=reasoning,
+            confidence_score=confidence_score,
+            fact_check_sources=fact_check_sources_dict,  # Pass as dicts
+        )
+
+        logger.info("Analysis successful.")
+        return analysis_result
+
+    except HTTPException as http_err:
+        logger.error(f"HTTP error during analysis: {http_err.detail}")
+        raise http_err
+    except Exception as e:
+        logger.error(f"Unexpected error during analysis: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail="Internal server error during analysis.")
+
+@app.get("/health")
+async def health_check():
+    """Health check endpoint."""
+    logger.info("Health check requested.")
+    return {"status": "healthy"}
+
+# Start the server if this file is executed directly
 if __name__ == "__main__":
-
-    # Example usage
-    image_name = "plants.jpg"
-    news_text = "A new scientific breakthrough claims that teleportation is possible."
-
-    # Get the absolute path to the data directory
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    project_root = os.path.dirname(script_dir)
-    image_path = os.path.join(project_root, "data", image_name)
-
-    # Detect fake news
-    result = detect_fake_news(news_text, image_path)
-    print(f"Model's Response:\n{result}")
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)

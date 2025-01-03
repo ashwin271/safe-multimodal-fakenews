@@ -161,33 +161,34 @@
 
     <script>
         async function analyzeNews() {
-            const newsText = document.getElementById('newsText').value;
+            const newsText = document.getElementById('newsText').value.trim();
             const imageFile = document.getElementById('image').files[0];
             
             if (!newsText || !imageFile) {
                 showError('Please provide both news text and an image.');
                 return;
             }
-
+    
             // Show loading, hide results and error
             document.getElementById('loading').style.display = 'block';
             document.getElementById('result').style.display = 'none';
             document.getElementById('error').style.display = 'none';
-
+    
             const formData = new FormData();
-            formData.append('news', JSON.stringify({ news_text: newsText }));
+            formData.append('news', newsText);  // Pass as simple string
             formData.append('image', imageFile);
-
+    
             try {
-                const response = await fetch('http://localhost:8000/analyze', {
+                const response = await fetch('/analyze', {  // Use relative path
                     method: 'POST',
                     body: formData
                 });
-
+    
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
                 }
-
+    
                 const data = await response.json();
                 displayResults(data);
             } catch (error) {
@@ -196,26 +197,26 @@
                 document.getElementById('loading').style.display = 'none';
             }
         }
-
+    
         function displayResults(data) {
             document.getElementById('result').style.display = 'block';
-
+    
             // Set status banner
             const statusBanner = document.getElementById('statusBanner');
             statusBanner.textContent = `Status: ${data.fact_check_status}`;
             statusBanner.className = `status ${data.fact_check_status.toLowerCase()}`;
-
+    
             // Set confidence score
             document.getElementById('confidenceScore').textContent = 
                 `${(data.confidence_score * 100).toFixed(1)}%`;
-
+    
             // Set reasoning
             document.getElementById('reasoning').textContent = data.reasoning;
-
+    
             // Set image-text match
             document.getElementById('imageTextMatch').textContent = 
                 data.image_text_match ? "Image matches the text" : "Image does not match the text";
-
+    
             // Display sources
             const sourcesContainer = document.getElementById('sources');
             sourcesContainer.innerHTML = data.fact_check_sources.map(source => `
@@ -226,13 +227,14 @@
                 </div>
             `).join('');
         }
-
+    
         function showError(message) {
             const errorDiv = document.getElementById('error');
             errorDiv.textContent = message;
             errorDiv.style.display = 'block';
             document.getElementById('loading').style.display = 'none';
         }
-    </script>
+    </script>    
+
 </body>
 </html>
