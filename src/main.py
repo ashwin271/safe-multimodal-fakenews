@@ -1,5 +1,6 @@
 from together import Together
 from dotenv import load_dotenv
+from tavily import TavilyClient
 import os
 import base64
 
@@ -9,9 +10,30 @@ load_dotenv()
 # Initialize the Together API client
 client = Together(api_key=os.getenv('TOGETHER_API_KEY'))
 
+# Initialize Tavily client
+tavily_client = TavilyClient(api_key=os.getenv('TAVILY_API_KEY'))
+
+def fact_check_with_tavily(news_text):
+    """
+    Search the internet for related facts about the news claim.
+    """
+    try:
+        # Search with Tavily's news-focused search
+        search_result = tavily_client.search(
+            query=news_text,
+            search_depth="advanced",
+            include_domains=["reuters.com", "apnews.com", "bbc.com", "factcheck.org", "snopes.com"],
+            max_results=5
+        )
+        
+        return search_result
+    except Exception as e:
+        print(f"Tavily search error: {e}")
+        return None
+
 def detect_fake_news(news_text, image_path):
     """
-    Function to detect fake news using LLAMA 3.2 hosted on the Together API.
+    Enhanced fake news detection with Tavily fact-checking.
 
     Args:
         news_text (str): The text of the news article.
@@ -20,6 +42,9 @@ def detect_fake_news(news_text, image_path):
     Returns:
         str: Model's response indicating if the news is fake or true.
     """
+    # First, get fact-checking results
+    fact_check_results = fact_check_with_tavily(news_text)
+
     # Validate image path
     if not os.path.exists(image_path):
         raise FileNotFoundError(f"Image file not found: {image_path}")
@@ -30,24 +55,30 @@ def detect_fake_news(news_text, image_path):
         image_base64 = base64.b64encode(image_bytes).decode('utf-8')
         image_base64 = f"data:image/jpeg;base64,{image_base64}"
 
-
-
     # Prepare the input for the model
     messages = [
         {
             "role": "system",
-            "content": """You are a fake news detection expert. Analyze the provided news text and image, then respond in the following format:
+            "content": """You are a fake news detection expert. Analyze the provided news text, image, and fact-checking results. Respond in the following format:
 
 IMAGE-TEXT MATCH: [Yes/No]
+FACT CHECK: [Supported/Contradicted/Inconclusive]
 FAKE NEWS: [Yes/No]
-REASONING: [Your detailed explanation]
+REASONING: [Your detailed explanation including references to fact-checking results]
 
 Be direct and concise in your assessment."""
         },
         {
             "role": "user",
             "content": [
-                {"type": "text", "text": f"News Text: {news_text}\nPlease analyze if this news is authentic by checking if the image supports the text."},
+                {"type": "text", "text": f"""News Text: {news_text}
+                
+Fact-Checking Results:
+{fact_check_results}
+
+Please analyze if this news is authentic by checking:
+1. If the image supports the text
+2. If the fact-checking results support or contradict the claim"""},
                 {
                     "type": "image_url",
                     "image_url": {
@@ -74,7 +105,6 @@ Be direct and concise in your assessment."""
     return response.choices[0].message.content
 
 if __name__ == "__main__":
-
 
     # Example usage
     image_name = "plants.jpg"
