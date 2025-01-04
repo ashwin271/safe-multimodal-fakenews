@@ -1,103 +1,108 @@
-# SAFE - Fake News Detection
+# SAFE - AI-Powered Fake News Detector
 
-A Python-based tool that uses Together AI's LLaMA Vision model and Tavily's fact-checking API to detect fake news by analyzing text, images, and verifying claims against reliable sources.
+An advanced Python tool leveraging Together AI's LLaMA Vision model and Tavily's fact-checking API to detect fake news through multi-modal analysis of text and images, cross-referencing claims against reliable sources.
+
+## Background
+This project was motivated by the paper "SAFE: Similarity-Aware Multi-Modal Fake News Detection" by Xinyi Zhou, Jindi Wu, and Reza Zafarani. The paper highlights the importance of analyzing the relationship between textual and visual information in news articles to effectively detect fake news. The proposed method in the paper, which focuses on identifying mismatches between text and images, influenced the development of this tool. You can read more about the paper [here](https://doi.org/10.48550/arXiv.2003.04981).
 
 ## Setup
 
-### 1. API Key Setup
-1. Visit [Together AI](https://api.together.ai) and create an account
-2. Visit [Tavily](https://tavily.com) and create an account
-3. Generate API keys from both dashboards
-4. If a `.env` file does not exist in the `src` directory, create one:
+### 1. API Key Configuration
+1. Create accounts on [Together AI](https://api.together.ai) and [Tavily](https://tavily.com)
+2. Generate API keys from both platforms
+3. In the `src` directory, create or update the `.env` file:
    ```env
    TOGETHER_API_KEY=your_together_api_key_here
    TAVILY_API_KEY=your_tavily_api_key_here
    ```
-   If a dummy `.env` file already exists, update both API keys with your actual values.
 
 ### 2. Environment Setup 
 
 #### Option A: Direct Installation
-Install required packages:
 ```bash
 pip install -r requirements.txt
 ```
 
 #### Option B: Virtual Environment
 ```bash
-# Create virtual environment
 python -m venv env
-
-# Activate virtual environment
-# On Windows:
-env\Scripts\activate
-# On macOS/Linux:
-source env/bin/activate
-
-# Install required packages
+# Activate the environment (OS-specific)
 pip install -r requirements.txt
 ```
 
 ## Usage
 
-1. Place your test images in the `data` directory
-2. Run the script:
+1. Add test images to the `data` directory
+2. Execute the script:
 ```bash
 cd src
 python main.py
 ```
 
-The script will perform a comprehensive analysis of the news content:
-- Verify if the image matches the text content
-- Fact-check claims against reliable news sources (Reuters, AP News, BBC, FactCheck.org, Snopes)
-- Determine if the news is likely fake
+The tool will:
+- Analyze image-text consistency
+- Fact-check claims using reliable sources
+- Assess the likelihood of fake news
 - Provide detailed reasoning for the assessment
 
 ## Example Output
-```
-Model's Response:
-IMAGE-TEXT MATCH: No
-FACT CHECK: Contradicted
-FAKE NEWS: Yes
-REASONING: The image shows plants or vegetation, which has no relation to the claim about teleportation. 
-Additionally, fact-checking results from reliable sources show no evidence supporting this claim...
+```json
+{
+  "image_text_match": "Yes",
+  "image_text_match_confidence": 0.8,
+  "fact_check": "Supported",
+  "fact_check_confidence": 0.75,
+  "fake_news": "No",
+  "fake_news_confidence": 0.9,
+  "reasoning": "The image analysis supports the news text with 80% confidence. Fact-checking results are supported with 75% confidence. Based on this analysis, the news is determined to be authentic with 90% confidence.",
+  "fact_check_results": [
+    {
+      "title": "Fact Check: Trump's Relations with India",
+      "url": "https://example.com/fact-check",
+      "content": "Verified positive relations between Trump and Indian government.",
+      "score": 0.85
+    }
+  ],
+  "image_analysis": {
+    "description": "Image shows Trump meeting with Indian officials.",
+    "confidence": 0.8
+  }
+}
 ```
 
 ## Project Structure
-```bash
+```
 .
-├── README.md       # Project documentation
-├── data/           # Store your test images here
-├── requirements.txt # Python dependencies
-└── src/
-    ├── .env        # API keys configuration
-    └── main.py     # Main detection script
+├── LICENSE.md
+├── README.md
+├── requirements.txt
+└── src
+    ├── .env
+    └── main.py
 ```
 
 ## Requirements
 - Python 3.7+
-- python-dotenv
-- together
-- tavily-python
+- Dependencies listed in `requirements.txt`
 
 ## Features
-- Multi-modal analysis combining image and text verification
-- Integration with Tavily's advanced search API for fact-checking
-- Focused search across reliable news sources and fact-checking websites
-- Detailed reasoning for each assessment
-- Easy-to-understand output format
+- Multi-modal analysis (image and text)
+- Integration with Tavily's advanced search API
+- Focused search across reputable news and fact-checking sources
+- Detailed assessment with confidence scores
+- Asynchronous processing for improved performance
 
 ## How It Works
-1. The system takes a news claim and associated image as input
-2. Tavily API searches reliable sources for fact-checking information
-3. LLaMA Vision model analyzes both the image and text content
-4. The system combines these analyses to:
-   - Verify image-text consistency
+1. Processes input news claim and associated image
+2. Utilizes Tavily API for fact-checking against reliable sources
+3. Analyzes image content using LLaMA Vision model
+4. Combines analyses to:
+   - Evaluate image-text consistency
    - Cross-reference claims with fact-checking results
-   - Provide a final assessment with detailed reasoning
+   - Generate a comprehensive assessment with reasoning
 
 ## Contributing
-Feel free to open issues or submit pull requests to improve the project.
+Contributions via issues or pull requests are welcome to enhance the project.
 
 ## License
-This project is open source and available under the MIT License.
+This project is open source, available under the MIT License.
