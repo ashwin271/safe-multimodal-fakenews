@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detector</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Fake News Detector</h1>
+            <p class="description">Upload an image and news text to verify its authenticity</p>
+        </header>
+
+        <div class="form-container">
+            <form id="fakeNewsForm" onsubmit="handleSubmit(event)">
+                <div class="form-group">
+                    <label for="news_text">News Text:</label>
+                    <textarea id="news_text" name="news_text" required></textarea>
+                </div>
+
+                <div class="file-input-container">
+                    <label for="image" class="file-input-label">
+                        Choose Image
+                    </label>
+                    <input type="file" id="image" name="image" accept="image/*" required>
+                    <p id="file-name" style="margin-top: 0.5rem;"></p>
+                </div>
+
+                <button type="submit" class="submit-btn">Analyze</button>
+            </form>
+
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Analyzing...</p>
+            </div>
+
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Show selected filename
+        document.getElementById('image').addEventListener('change', function(e) {
+            const fileName = e.target.files[0] ? e.target.files[0].name : 'No file selected';
+            document.getElementById('file-name').textContent = fileName;
+        });
+
+        // Handle form submission
+        async function handleSubmit(event) {
+            event.preventDefault();
+            
+            const form = event.target;
+            const formData = new FormData(form);
+            const resultDiv = document.getElementById('result');
+            const loadingDiv = document.querySelector('.loading');
+            
+            // Show loading spinner
+            loadingDiv.style.display = 'block';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/detect_fake_news', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+                
+                // Format the results
+                let resultHTML = `
+                    <h3>Analysis Results:</h3>
+                    <p><strong>Fake News Detection:</strong> ${data.fake_news} (Confidence: ${(data.fake_news_confidence * 100).toFixed(1)}%)</p>
+                    <p><strong>Image-Text Match:</strong> ${data.image_text_match} (Confidence: ${(data.image_text_match_confidence * 100).toFixed(1)}%)</p>
+                    <p><strong>Fact Check Status:</strong> ${data.fact_check} (Confidence: ${(data.fact_check_confidence * 100).toFixed(1)}%)</p>
+                    <p><strong>Reasoning:</strong> ${data.reasoning}</p>
+                    
+                    <h4>Image Analysis:</h4>
+                    <p>${data.image_analysis.description}</p>
+                    
+                    <h4>Fact Check Results:</h4>
+                    <ul>
+                `;
+
+                data.fact_check_results.forEach(result => {
+                    resultHTML += `
+                        <li>
+                            <p><strong>Title:</strong> ${result.title}</p>
+                            <p><strong>Score:</strong> ${(result.score * 100).toFixed(1)}%</p>
+                            <p><a href="${result.url}" target="_blank">Source</a></p>
+                        </li>
+                    `;
+                });
+
+                resultHTML += '</ul>';
+
+                // Display results
+                resultDiv.innerHTML = resultHTML;
+                resultDiv.className = data.fake_news === 'Yes' ? 'result-error' : 'result-success';
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <h3>Error</h3>
+                    <p>An error occurred while analyzing the news. Please try again.</p>
+                    <p>Error details: ${error.message}</p>
+                `;
+                resultDiv.className = 'result-error';
+                resultDiv.style.display = 'block';
+            } finally {
+                // Hide loading spinner
+                loadingDiv.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>
