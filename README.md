@@ -1,6 +1,9 @@
-# AI-Powered Fake News Detector
+# SAFE - AI-Powered Fake News Detector
 
 An advanced Python tool leveraging Together AI's LLaMA Vision model and Tavily's fact-checking API to detect fake news through multi-modal analysis of text and images, cross-referencing claims against reliable sources.
+
+## Background
+This project was motivated by the paper "SAFE: Similarity-Aware Multi-Modal Fake News Detection" by Xinyi Zhou, Jindi Wu, and Reza Zafarani. The paper highlights the importance of analyzing the relationship between textual and visual information in news articles to effectively detect fake news. The proposed method in the paper, which focuses on identifying mismatches between text and images, influenced the development of this tool. You can read more about the paper [here](https://doi.org/10.48550/arXiv.2003.04981).
 
 ## Setup
 
