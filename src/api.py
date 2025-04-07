@@ -14,6 +14,10 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 async def read_root():
     return FileResponse('static/index.html')
 
+@app.get("/factcheck.html", response_class=HTMLResponse)
+async def read_root():
+    return FileResponse('static/factcheck.html')
+
 @app.post("/detect_fake_news")
 async def detect_fake_news_api(
     news_text: str = Form(...), 

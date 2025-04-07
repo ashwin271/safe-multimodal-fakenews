@@ -4,36 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Fake News Detector | Verify News Authenticity</title>
+    <meta name="description" content="FakeNewsGuard uses advanced AI algorithms to verify the authenticity of news articles instantly. Ensure you're reading reliable information with our comprehensive analysis.">
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha512-pCE9CYfqMgC8u3bAIsHhjDtdHz01i24Z5VZ7wYGn0+VnqG9jzC+ZM1IpnykOpCfH6aXu5wKJqOHtKtmU0t+7jg==" crossorigin="anonymous" referrerpolicy="no-referrer" /> -->
+    <link rel="icon" href="/static/favicon.ico">
+    <!-- Preconnect for Performance -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
+    <!-- Skip to Content for Accessibility -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <!-- Navigation Bar -->
-    <nav class="navbar">
-        <div class="nav-container">
-            <div class="nav-logo">
-                <i class="fas fa-shield-alt"></i>
-                <span>FakeNewsGuard</span>
-            </div>
-            <div class="nav-links">
-                <a href="#" class="active">Home</a>
-                <a href="#how-it-works">How It Works</a>
-                <a href="#about">About</a>
-                <a href="https://github.com/yourusername/fake-news-detector" target="_blank" class="github-link">
-                    <i class="fab fa-github"></i> GitHub
+    <header>
+        <nav class="navbar">
+            <div class="nav-container">
+                <a href="#" class="nav-logo" aria-label="FakeNewsGuard Home">
+                    <i class="fas fa-shield-alt" aria-hidden="true"></i>
+                    <span>FakeNewsGuard</span>
                 </a>
+                <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-menu">
+                    <span class="hamburger"></span>
+                </button>
+                <ul class="nav-links" id="nav-menu">
+                    <li><a href="#" class="active">Home</a></li>
+                    <li><a href="#how-it-works">How It Works</a></li>
+                    <li><a href="#about">About</a></li>
+                    <li><a href="https://github.com/ashwin271/safe-multimodal-fakenews" target="_blank" rel="noopener" class="github-link">
+                        <i class="fab fa-github" aria-hidden="true"></i> GitHub
+                    </a></li>
+                </ul>
             </div>
-        </div>
-    </nav>
+        </nav>
+    </header>
 
     <!-- Hero Section -->
-    <section class="hero-section">
+    <section class="hero-section" id="home">
         <div class="hero-container">
             <div class="hero-content">
                 <h1 class="hero-title">AI-Powered Fake News Detection</h1>
                 <p class="hero-description">
                     Verify news authenticity instantly using advanced AI algorithms. 
-                    Upload an image and text to get comprehensive analysis backed by reliable sources.
+                    Upload an image and text to get a comprehensive analysis backed by reliable sources.
                 </p>
                 <div class="hero-stats">
                     <div class="stat-item">
@@ -54,46 +69,50 @@
     </section>
 
     <!-- Main Content -->
-    <main class="main-section">
+    <main class="main-section" id="main-content">
         <div class="container">
             <div class="analysis-container">
                 <!-- Analysis Form -->
-                <div class="form-container">
-                    <h2 class="section-title">Verify News</h2>
-                    <form id="fakeNewsForm" onsubmit="handleSubmit(event)">
+                <section class="form-container" aria-labelledby="verify-news-title">
+                    <h2 class="section-title" id="verify-news-title">Verify News</h2>
+                    <form id="fakeNewsForm" onsubmit="handleSubmit(event)" novalidate>
                         <div class="form-group">
-                            <label for="news_text">News Text</label>
-                            <div class="textarea-wrapper">
-                                <textarea 
-                                    id="news_text" 
-                                    name="news_text" 
-                                    placeholder="Paste the news text you want to verify..."
-                                    required></textarea>
+                            <label for="news_text" class="form-label">News Text</label>
+                            <textarea 
+                                id="news_text" 
+                                name="news_text" 
+                                placeholder="Paste the news text you want to verify..."
+                                required
+                                aria-required="true"
+                                aria-describedby="news_text_help"></textarea>
+                            <span id="news_text_help" class="form-hint">Ensure the text is at least 50 characters long.</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="image" class="form-label">Related Image</label>
+                            <div class="file-upload">
+                                <label for="image" class="file-upload-label" tabindex="0">
+                                    <div class="upload-icon">
+                                        <i class="fas fa-cloud-upload-alt" aria-hidden="true"></i>
+                                    </div>
+                                    <div class="upload-text">
+                                        <span>Drop your image here or click to upload</span>
+                                        <span class="upload-hint">Supports: JPG, PNG (Max 5MB)</span>
+                                    </div>
+                                </label>
+                                <input type="file" id="image" name="image" accept="image/png, image/jpeg" required aria-required="true">
+                                <p id="file-name" class="file-name"></p>
                             </div>
                         </div>
 
-                        <div class="file-upload">
-                            <label for="image" class="file-upload-label">
-                                <div class="upload-icon">
-                                    <i class="fas fa-cloud-upload-alt"></i>
-                                </div>
-                                <div class="upload-text">
-                                    <span>Drop your image here or click to upload</span>
-                                    <span class="upload-hint">Supports: JPG, PNG (Max 5MB)</span>
-                                </div>
-                            </label>
-                            <input type="file" id="image" name="image" accept="image/*" required>
-                            <p id="file-name" class="file-name"></p>
-                        </div>
-
-                        <button type="submit" class="submit-btn">
-                            <i class="fas fa-search"></i> Analyze News
+                        <button type="submit" class="submit-btn" aria-label="Analyze News">
+                            <i class="fas fa-search" aria-hidden="true"></i> Analyze News
                         </button>
                     </form>
-                </div>
+                </section>
 
                 <!-- Results Section -->
-                <div id="result" class="results-container"></div>
+                <section id="result" class="results-container" aria-live="polite" aria-atomic="true"></section>
             </div>
         </div>
     </main>
@@ -105,47 +124,65 @@
             <div class="steps-container">
                 <div class="step">
                     <div class="step-icon">
-                        <i class="fas fa-upload"></i>
+                        <i class="fas fa-upload" aria-hidden="true"></i>
                     </div>
                     <h3>Upload</h3>
-                    <p>Submit news text and related image for analysis</p>
+                    <p>Submit the news text and related image for analysis.</p>
                 </div>
                 <div class="step">
                     <div class="step-icon">
-                        <i class="fas fa-brain"></i>
+                        <i class="fas fa-brain" aria-hidden="true"></i>
                     </div>
                     <h3>AI Analysis</h3>
-                    <p>Our AI examines content using multiple verification methods</p>
+                    <p>Our AI examines the content using multiple verification methods.</p>
                 </div>
                 <div class="step">
                     <div class="step-icon">
-                        <i class="fas fa-check-circle"></i>
+                        <i class="fas fa-check-circle" aria-hidden="true"></i>
                     </div>
                     <h3>Results</h3>
-                    <p>Get detailed authenticity report with confidence scores</p>
+                    <p>Receive a detailed authenticity report with confidence scores.</p>
                 </div>
             </div>
         </div>
     </section>
 
     <!-- Loading Indicator -->
-    <div class="loading">
+    <div class="loading" id="loading" style="display: none;">
         <div class="loading-content">
             <div class="loading-spinner"></div>
             <p>Analyzing your content...</p>
         </div>
     </div>
 
+    <!-- Footer -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-logo">
-                    <i class="fas fa-shield-alt"></i>
+                <div class="footer-logo" aria-label="FakeNewsGuard Home">
+                    <i class="fas fa-shield-alt" aria-hidden="true"></i>
                     <span>FakeNewsGuard</span>
                 </div>
-                <p class="footer-text">© 2025 FakeNewsGuard. All rights reserved.</p>
+                <p class="footer-text">&copy; 2025 FakeNewsGuard. All rights reserved.</p>
             </div>
         </div>
     </footer>
+
+    <!-- Toast Notifications -->
+    <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <!-- Toast message will be injected here dynamically -->
+    </div>
+
+    <div id="factCheckModal" class="modal" aria-hidden="true" role="dialog" aria-labelledby="factCheckModalTitle">
+        <div class="modal-content">
+            <span class="close-button" id="closeModal" aria-label="Close Fact-Check Details">&times;</span>
+            <h2 id="factCheckModalTitle">Fact-Check Details</h2>
+            <div id="factCheckDetails">
+                <!-- Fact-Check Results Will Be Injected Here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js" defer></script>
 </body>
 </html>
